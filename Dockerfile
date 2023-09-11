@@ -15,7 +15,7 @@ RUN set -ex \
     && yum groupinstall -y -q "Development tools" \
     && yum install -y -q \
         amazon-ecr-credential-helper git wget bzip2 ncurses openssl openssl-devel jq \
-        libffi-devel repo libsqlite3x-devel.x86_64 yq
+        libffi-devel repo libsqlite3x-devel.x86_64 yq docker
 
 RUN wget https://dist.libuv.org/dist/v1.43.0/libuv-v1.43.0.tar.gz \
     && tar -zxf libuv-v1.43.0.tar.gz \
@@ -24,6 +24,11 @@ RUN wget https://dist.libuv.org/dist/v1.43.0/libuv-v1.43.0.tar.gz \
     && ./configure \
     && make \
     && make install
+
+# Buildx
+RUN mkdir -vp /usr/libexec/docker/cli-plugins/ \
+    && curl --silent -L "https://github.com/docker/buildx/releases/download/v0.10.0/buildx-v0.10.0.linux-amd64" > /usr/libexec/docker/cli-plugins/docker-buildx \
+    && chmod a+x /usr/libexec/docker/cli-plugins/docker-buildx
 
 ### End of target: core ### 
 
@@ -71,37 +76,7 @@ RUN set -ex \
 
 ### End of target: runtimes  ### 
 
-FROM tools AS docker
-
-# Docker 20
-ENV DOCKER_BUCKET="download.docker.com" \
-    DOCKER_CHANNEL="stable" \
-    DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
-    DOCKER_COMPOSE_VERSION="1.29.2"
-
-ENV DOCKER_SHA256="AB91092320A87691A1EAF0225B48585DB9C69CFF0ED4B0F569F744FF765515E3"
-ENV DOCKER_VERSION="20.10.24"
-
-VOLUME /var/lib/docker
-
-RUN set -ex \
-    && curl -fSL "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
-    && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum -c - \
-    && tar --extract --file docker.tgz --strip-components 1  --directory /usr/local/bin/ \
-    && rm docker.tgz \
-    && docker -v \
-    && groupadd dockremap \
-    && useradd -g dockremap dockremap \
-    && echo 'dockremap:165536:65536' >> /etc/subuid \
-    && echo 'dockremap:165536:65536' >> /etc/subgid \
-    && wget -q "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -O /usr/local/bin/dind \
-    && curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-Linux-x86_64 > /usr/local/bin/docker-compose \
-    && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
-    && docker-compose version
-
-### End of target: docker  ### 
-
-FROM docker AS caf
+FROM tools AS caf
 
 ARG GIT_USERNAME \
     GIT_TOKEN \
