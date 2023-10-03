@@ -14,7 +14,7 @@ RUN set -ex \
     && amazon-linux-extras enable docker \
     && yum groupinstall -y -q "Development tools" \
     && yum install -y -q \
-        amazon-ecr-credential-helper git wget bzip2 ncurses openssl openssl-devel jq \
+        amazon-ecr-credential-helper git wget bzip2 ncurses openssl11 openssl11-devel jq \
         libffi-devel repo libsqlite3x-devel.x86_64 yq docker
 
 RUN wget https://dist.libuv.org/dist/v1.43.0/libuv-v1.43.0.tar.gz \
